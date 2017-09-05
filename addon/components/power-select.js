@@ -16,7 +16,8 @@ import {
   filterOptions,
   countOptions,
   defaultHighlighted,
-  advanceSelectableOption
+  advanceSelectableOption,
+  isGroup
 } from '../utils/group-utils';
 import { task, timeout } from 'ember-concurrency';
 
