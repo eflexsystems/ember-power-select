@@ -470,9 +470,8 @@ export default Component.extend({
       (function walk(collection) {
         for (let i = 0; i < get(collection, 'length'); i++) {
           let entry = collection.objectAt ? collection.objectAt(i) : collection[i];
-          let subOptions = get(entry, 'options');
-          let isGroup = !!get(entry, 'groupName') && !!subOptions;
-          if (isGroup) {
+          if (isGroup(entry)) {
+            let subOptions = get(entry, 'options');
             assert('ember-power-select doesn\'t support promises inside groups. Please, resolve those promises and turn them into arrays before passing them to ember-power-select', !subOptions.then);
             walk(subOptions);
           }
