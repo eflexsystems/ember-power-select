@@ -1,5 +1,14 @@
 # Master
 
+- [ENHANCEMENT] Update `ember-text-measurer` to 0.4.0, which uses the latest babel, allowing consumer
+  apps to drop `ember-cli-shims`.
+- [BUGFIX] Ensure selecting an option by pressing the spacebar on a select without searchbox does not
+  cause a page scroll.
+
+# 1.9.11
+- [ENHANCEMENT] Update `ember-truth-helpers` to ^2.0
+- [ENHANCEMENT] Update `ember-cli-babel` to ^6.8.2
+
 # 1.9.10
 - [ENHANCEMENT] Pass the `placeholder` and the `placeholderComponent` to the `beforeOptionsComponent`,
   to allow more customizations on it.
