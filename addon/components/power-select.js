@@ -75,6 +75,7 @@ export default Component.extend({
   // Options
   searchEnabled: fallbackIfUndefined(true),
   matchTriggerWidth: fallbackIfUndefined(true),
+  preventScroll: fallbackIfUndefined(false),
   matcher: fallbackIfUndefined(defaultMatcher),
   loadingMessage: fallbackIfUndefined('Loading options...'),
   noMatchesMessage: fallbackIfUndefined('No results found'),
