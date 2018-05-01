@@ -84,7 +84,7 @@
       <td>destination</td>
       <td><code>'ember-basic-dropdown-wormhole'</code></td>
       <td>
-        The id of the element used as target for the dropdown's content, when not rendered in place.
+        The id of the element used as target for the content of the dropdown, when not rendered in place.
       </td>
     </tr>
     <tr>
@@ -113,7 +113,7 @@
       <td>
         In the case when trigger is narrower than dropdown. By default is <code>"auto"</code>, meaning that will
         position the list depending on the side of the trigger. Possible values are
-        <code>"left"</code> and <code>"right"</code>.
+        <code>"left"</code>, <code>"center"</code> and <code>"right"</code>.
       </td>
     </tr>
     <tr>
@@ -173,7 +173,7 @@
       <td>oninput</td>
       <td><code>function</code></td>
       <td>
-        The function to be invoked when the user changes the text in any any search input of the component.
+        The function to be invoked when the user changes the text in any search input of the component.
         If the user returns <code>false</code> the default behaviour (filter/search) is prevented.
       </td>
     </tr>
@@ -284,6 +284,14 @@
       <td>triggerRole</td>
       <td><code>string</code></td>
       <td>The aria-role to use on the trigger element. Defaults to <code>'button'</code></td>
+    </tr>
+    <tr>
+      <td>typeAheadMatcher</td>
+      <td><code>function</code></td>
+      <td>
+        The <code>function(option, searchTerm)</code> used to match the searchTerm with an option when the
+        selector is closed or search is disabled. The default one will compare ignoring diacritics.
+      </td>
     </tr>
     <tr>
       <td>verticalPosition</td>

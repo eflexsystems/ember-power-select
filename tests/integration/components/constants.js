@@ -92,3 +92,41 @@ export const groupedNumbersWithDisabled = [
   'one hundred',
   'one thousand'
 ];
+
+export const namesStartingWithA = [
+  'Abigail',
+  'Abril',
+  'Adriana',
+  'Adrián',
+  'Agustina',
+  'Agustín',
+  'Aitana',
+  'Alan',
+  'Alejandra',
+  'Alejandro',
+  'Alessandra',
+  'Alex',
+  'Alexa',
+  'Alexander',
+  'Allison',
+  'Alma',
+  'Alonso',
+  'Álvaro',
+  'Amanda',
+  'Amelia',
+  'Ana',
+  'Andrea',
+  'Andrés',
+  // These two need to be in the middle.
+  'Aaran', // Does not exist, don't look for it.
+  'Aarón',
+  'Ángel',
+  'Anthony',
+  'Antonella',
+  'Antonia',
+  'Antonio',
+  'Ariadna',
+  'Ariana',
+  'Ashley',
+  'Axel'
+];

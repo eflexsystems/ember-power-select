@@ -11,15 +11,17 @@ import { isArray as isEmberArray } from '@ember/array';
 import ArrayProxy from '@ember/array/proxy';
 import layout from '../templates/components/power-select';
 import fallbackIfUndefined from '../utils/computed-fallback-if-undefined';
+import optionsMatcher from '../utils/computed-options-matcher';
 import {
   defaultMatcher,
   indexOfOption,
-  optionAtIndex,
   filterOptions,
+  findOptionWithOffset,
   countOptions,
   defaultHighlighted,
   advanceSelectableOption,
   isGroup
+  defaultTypeAheadMatcher
 } from '../utils/group-utils';
 import { task, timeout } from 'ember-concurrency';
 
@@ -64,7 +66,8 @@ const initialState = {
   loading: false,           // Truthy if there is a pending promise that will update the results
   isActive: false,          // Truthy if the trigger is focused. Other subcomponents can mark it as active depending on other logic.
   // Private API (for now)
-  _expirableSearchText: ''
+  _expirableSearchText: '',
+  _repeatingChar: ''
 };
 
 export default Component.extend({
@@ -82,6 +85,7 @@ export default Component.extend({
   searchMessage: fallbackIfUndefined('Type to search'),
   closeOnSelect: fallbackIfUndefined(true),
   defaultHighlighted: fallbackIfUndefined(defaultHighlighted),
+  typeAheadMatcher: fallbackIfUndefined(defaultTypeAheadMatcher),
 
   afterOptionsComponent: fallbackIfUndefined(null),
   beforeOptionsComponent: fallbackIfUndefined('power-select/before-options'),
@@ -105,7 +109,12 @@ export default Component.extend({
   init() {
     this._super(...arguments);
     this._publicAPIActions = {
-      search: (...args) => this.send('search', ...args),
+      search: (...args) => {
+        if (this.get('isDestroying')) {
+          return;
+        }
+        return this.send('search', ...args)
+      },
       highlight: (...args) => this.send('highlight', ...args),
       select: (...args) => this.send('select', ...args),
       choose: (...args) => this.send('choose', ...args),
@@ -135,7 +144,7 @@ export default Component.extend({
       return null;
     },
     set(_, selected) {
-      if (selected && selected.then) {
+      if (selected && get(selected, 'then')) {
         this.get('_updateSelectedTask').perform(selected);
       } else {
         scheduleOnce('actions', this, this.updateSelection, selected);
@@ -161,17 +170,9 @@ export default Component.extend({
     }
   }),
 
-  optionMatcher: computed('searchField', 'matcher', function() {
-    let { matcher, searchField } = this.getProperties('matcher', 'searchField');
-    if (searchField && matcher === defaultMatcher) {
-      return (option, text) => matcher(get(option, searchField), text);
-    } else {
-      return (option, text) => {
-        assert('{{power-select}} If you want the default filtering to work on options that are not plain strings, you need to provide `searchField`', matcher !== defaultMatcher || typeof option === 'string');
-        return matcher(option, text);
-      };
-    }
-  }),
+  optionMatcher: optionsMatcher('matcher', defaultMatcher),
+
+  typeAheadOptionMatcher: optionsMatcher('typeAheadMatcher', defaultTypeAheadMatcher),
 
   concatenatedTriggerClasses: computed('triggerClass', 'publicAPI.isActive', function() {
     let classes = ['ember-power-select-trigger'];
@@ -331,7 +332,7 @@ export default Component.extend({
     },
 
     scrollTo(option, ...rest) {
-      if (!self.document || !option) {
+      if (!document || !option) {
         return;
       }
       let publicAPI = this.get('publicAPI');
@@ -339,7 +340,7 @@ export default Component.extend({
       if (userDefinedScrollTo) {
         return userDefinedScrollTo(option, publicAPI, ...rest);
       }
-      let optionsList = self.document.getElementById(`ember-power-select-options-${publicAPI.uniqueId}`);
+      let optionsList = document.getElementById(`ember-power-select-options-${publicAPI.uniqueId}`);
       if (!optionsList) {
         return;
       }
@@ -403,27 +404,56 @@ export default Component.extend({
 
   // Tasks
   triggerTypingTask: task(function* (e) {
+    // In general, a user doing this interaction means to have a different result.
+    let searchStartOffset = 1;
     let publicAPI = this.get('publicAPI');
+    let repeatingChar = publicAPI._repeatingChar;
     let charCode = e.keyCode;
     if (this._isNumpadKeyEvent(e)) {
       charCode -= 48; // Adjust char code offset for Numpad key codes. Check here for numapd key code behavior: https://goo.gl/Qwc9u4
     }
-    let term = publicAPI._expirableSearchText + String.fromCharCode(charCode);
-    this.updateState({ _expirableSearchText: term });
-    let matches = this.filter(publicAPI.options, term, true);
-    if (get(matches, 'length') > 0) {
-      let firstMatch = optionAtIndex(matches, 0);
-      if (firstMatch !== undefined) {
-        if (publicAPI.isOpen) {
-          publicAPI.actions.highlight(firstMatch.option, e);
-          publicAPI.actions.scrollTo(firstMatch.option, e);
-        } else {
-          publicAPI.actions.select(firstMatch.option, e);
-        }
+    let term;
+
+    // Check if user intends to cycle through results. _repeatingChar can only be the first character.
+    let c = String.fromCharCode(charCode);
+    if (c === publicAPI._repeatingChar) {
+      term = c;
+    } else {
+      term = publicAPI._expirableSearchText + c;
+    }
+
+    if (term.length > 1) {
+      // If the term is longer than one char, the user is in the middle of a non-cycling interaction
+      // so the offset is just zero (the current selection is a valid match).
+      searchStartOffset = 0;
+      repeatingChar = '';
+    } else {
+      repeatingChar = c;
+    }
+
+    // When the select is open, the "selection" is just highlighted.
+    if (publicAPI.isOpen && publicAPI.highlighted) {
+      searchStartOffset += indexOfOption(publicAPI.options, publicAPI.highlighted);
+    } else if (!publicAPI.isOpen && publicAPI.selected) {
+      searchStartOffset += indexOfOption(publicAPI.options, publicAPI.selected);
+    } else {
+      searchStartOffset = 0;
+    }
+
+    // The char is always appended. That way, searching for words like "Aaron" will work even
+    // if "Aa" would cycle through the results.
+    this.updateState({ _expirableSearchText: publicAPI._expirableSearchText + c, _repeatingChar: repeatingChar });
+    let match = this.findWithOffset(publicAPI.options, term, searchStartOffset, true);
+    if (match !== undefined) {
+      if (publicAPI.isOpen) {
+        publicAPI.actions.highlight(match, e);
+        publicAPI.actions.scrollTo(match, e);
+      } else {
+        publicAPI.actions.select(match, e);
       }
     }
     yield timeout(1000);
-    this.updateState({ _expirableSearchText: '' });
+    this.updateState({ _expirableSearchText: '', _repeatingChar: '' });
   }).restartable(),
 
   _updateSelectedTask: task(function* (selectionPromise) {
@@ -473,6 +503,10 @@ export default Component.extend({
 
   filter(options, term, skipDisabled = false) {
     return filterOptions(options || [], term, this.get('optionMatcher'), skipDisabled);
+  },
+
+  findWithOffset(options, term, offset, skipDisabled = false) {
+    return findOptionWithOffset(options || [], term, this.get('typeAheadOptionMatcher'), offset, skipDisabled);
   },
 
   updateOptions(options) {
