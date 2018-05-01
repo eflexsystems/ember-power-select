@@ -20,7 +20,7 @@ import {
   countOptions,
   defaultHighlighted,
   advanceSelectableOption,
-  isGroup
+  isGroup,
   defaultTypeAheadMatcher
 } from '../utils/group-utils';
 import { task, timeout } from 'ember-concurrency';
