@@ -1,6 +1,6 @@
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
-import { render, click, triggerKeyEvent, triggerEvent, focus, settled, waitFor } from '@ember/test-helpers';
+import { render, click, triggerKeyEvent, triggerEvent, focus, settled, waitFor, findAll } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 import { typeInSearch, clickTrigger, findContains } from 'ember-power-select/test-support/helpers';
 import RSVP from 'rsvp';
@@ -1183,11 +1183,11 @@ module('Integration | Component | Ember Power Select (General behavior)', functi
     assert.dom('.ember-power-select-trigger').hasText('Lucius', 'The trigger has the proper content');
   });
 
-  test('It works with null options', function(assert) {
+  test('It works with null options', async function(assert) {
     assert.expect(1);
     this.options = [null, 'an option'];
 
-    this.render(hbs`
+    await render(hbs`
       {{#power-select options=options onchange=(action (mut selected)) as |option|}}
         {{#if option}}
           {{option}}
@@ -1197,7 +1197,7 @@ module('Integration | Component | Ember Power Select (General behavior)', functi
       {{/power-select}}
     `);
 
-    clickTrigger();
+    await clickTrigger();
     let options = findAll('.ember-power-select-option');
     assert.equal(options[0].textContent.trim(), 'none');
   });
